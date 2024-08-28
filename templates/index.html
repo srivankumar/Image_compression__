@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Compression Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .container h1 {
+            margin-top: 0;
+        }
+        .upload-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .upload-form input[type="file"] {
+            margin-bottom: 20px;
+        }
+        .upload-form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .upload-form button:hover {
+            background-color: #0056b3;
+        }
+        .compressed-image {
+            margin-top: 20px;
+        }
+        /* Spinner styles */
+        .spinner {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 5px solid transparent;
+            border-top-color: red;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Image for Compression</h1>
+        <form class="upload-form" id="uploadForm">
+            <input type="file" name="image" id="imageInput" accept="image/*" required>
+            <button type="button" onclick="previewImage()">upload</button>
+            <button type="submit">Compress</button>
+            <!-- Spinner -->
+            <div class="spinner" id="spinner"></div>
+        </form>
+        <div class="compressed-image" id="compressedImage" style="display: none;">
+            <h2>Compressed Image</h2>
+            <img id="preview" src="" alt="Preview" width="300">
+            <p id="originalSize"></p>
+            <p id="compressedSize"></p>
+        </div>
+    </div>
+
+    <script>
+        function previewImage() {
+            const file = document.getElementById('imageInput').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('preview');
+                    preview.src = event.target.result;
+                    document.getElementById('compressedImage').style.display = 'block';
+                    document.getElementById('originalSize').innerText = 'Original Size: ' + (file.size / 1024).toFixed(2) + ' KB';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            // Show spinner
+            document.getElementById('spinner').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('image', document.getElementById('imageInput').files[0]);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'compressed_image';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                // Update compressed image size
+                const compressedSize = (blob.size / 1024).toFixed(2) + ' KB';
+                document.getElementById('compressedSize').innerText = 'Compressed Size: ' + compressedSize;
+            } else {
+                alert('Failed to upload and compress image');
+            }
+
+            // Hide spinner after 3 seconds
+            setTimeout(() => {
+                document.getElementById('spinner').style.display = 'none';
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
